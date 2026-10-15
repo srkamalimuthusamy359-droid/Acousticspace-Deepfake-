@@ -20,3 +20,23 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
+def extract_rir_and_acoustic_features(audio_bytes: bytes):
+    """
+    Extracts acoustic features, Mel-Spectrograms, and Room Impulse Response 
+    reflections using Librosa.
+    """
+    try:
+        # Load audio using Librosa
+        y, sr = librosa.load(io.BytesIO(audio_bytes), sr=16000, duration=10.0)
+        
+        # Calculate Mel-Spectrogram
+        mel_spectrogram = librosa.feature.melspectrogram(y=y, sr=sr, n_mels=128)
+        db_spectrogram = librosa.power_to_db(mel_spectrogram, ref=np.max)
+        
+        # Calculate Zero Crossing Rate & Spectral Centroid for breathing/cadence check
+        zcr = float(np.mean(librosa.feature.zero_crossing_rate(y)))
+        spectral_centroid = float(np.mean(librosa.feature.spectral_centroid(y=y, sr=sr)))
+        
+        # Estimate reverberation / decay metric as RIR proxy
+        duration = float(librosa.get_duration(y=y, sr=sr))
